@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link sizes="16x16" href="./static/img/logo-32-32.png" rel="icon" />
+  <link rel="icon" sizes="57x57" href="./static/img/logo60-60_chatwindow.png" />
+  <link rel="icon" sizes="114x114" href="./static/img/retina-116-33.png" />
+  <link rel="icon" sizes="72x72" href="./static/img/logo60-60_chatwindow.png" />
+  <link rel="icon" sizes="144x144" href="./static/img/retina-116-33.png" />
+  <link rel="author" href="https://plus.google.com/110345978490235132624" />
+  <link rel="publisher" href="https://plus.google.com/104045770618663274337" />
+  <title>Edenz Colleges Auckland</title>
+  <link href='./css/roboto.css' rel="stylesheet">
+  <link href="./css/vuetify.min.css" rel="stylesheet">
+  <script src="./js/vue.js"></script>
+  <script src="./js/vuetify.js"></script>
+  <script src="./js/axios.min.js"></script>
+  <script src="./js/lodash.min.js"></script>
+  <script src="./js/low.min.js"></script>
+  <script src="./js/LocalStorage.min.js"></script>
+  <script src="./js/jspdf.min.js"></script>
+  <script src="./js/smtp.js"></script>
+  <script src="./js/download.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <v-app id="app">
+      <v-toolbar app light>
+        <v-flex xs4 sm2 md1>
+          <v-avatar slot="activator" size="100%" tile>
+            <img src="./static/img/Edenz-Logo.png" alt="Edenz Colleges">
+          </v-avatar>
+        </v-flex>
+        <v-toolbar-title class="light-blue--text">SYSTEM PAYMENT NOTIFICATIONS</v-toolbar-title>
+        <v-spacer></v-spacer>
+        <v-btn icon @click="report">
+          <v-icon>list</v-icon>
+        </v-btn>
+        <span>02 (04) 148 9738</span>
+      </v-toolbar>
+      <v-content>
+        <v-parallax src="./static/img/EDENZ-Building.jpg" height="800">
+          <v-container fluid fill-height>
+            <v-layout align-center justify-center>
+              <v-flex xs12 sm8 md4>
+                <v-card class="elevation-12">
+                  <v-toolbar light color="light-blue--text">
+                    <v-toolbar-title>FILL THIS FORM!!!</v-toolbar-title>
+                    <v-spacer></v-spacer>
+                    <v-tooltip bottom color="info">
+                      <v-btn icon large :href="source" target="_blank" slot="activator">
+                        <v-icon large>phone</v-icon>
+                      </v-btn>
+                      <span>02 (04) 148 9738</span></br>
+                      <span>webaid@gmx.com</span>
+                    </v-tooltip>
+                  </v-toolbar>
+                  <v-card-text>
+                    <v-form ref="form" v-model="valid" lazy-validation>
+                      <v-text-field prepend-icon="person" v-model="stid" :rules="stidRules" :counter="10" label="Student ID"
+                        required></v-text-field>
+                      <v-text-field prepend-icon="email" v-model="email" :rules="emailRules" label="E-mail" required></v-text-field>
+                      <v-text-field prepend-icon="local_atm" v-model="amount" :rules="amountRules" label="Payment"
+                        required></v-text-field>
+                      <v-select prepend-icon="web" label="Service" :items="items" v-model="service" item-value="text"
+                        :rules="serviceRules" required></v-select>
+                      <v-layout align-center justify-space-around>
+                        <v-flex xs8>
+                          <v-radio-group v-model="payment_type" row mandatory>
+                            <v-radio label="CASH" prepend-icon="local_atm" value="CASH"></v-radio>
+                            <v-spacer></v-spacer>
+                            <v-radio label="EFTPOS" value="EFTPOS"></v-radio>
+                          </v-radio-group>
+                        </v-flex>
+                      </v-layout>
+                    </v-form>
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="info" :disabled="!valid" @click="submit">
+                      SEND EMAIL
+                    </v-btn>
+                    <v-btn @click="clear">Clear form</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-flex>
+            </v-layout>
+          </v-container>
+        </v-parallax>
+      </v-content>
+      <v-footer dark :fixed="fixed" app>
+        <span>&copy;2018 webaid@gmx.com</span>
+        </span>
+      </v-footer>
+      <!-- Modal -->
+      <v-dialog v-model="dialog" max-width="290">
+        <v-card>
+          <v-card-title class="headline" color="primary">Confirmation!</v-card-title>
+
+          <v-card-text>
+            Thank you for your payment.</br>
+            Check your email for receipt!
+          </v-card-text>
+
+          <v-card-actions>
+            <!-- <v-spacer></v-spacer>
+            <v-btn color="primary darken-1" flat="flat" @click="sendEmail">
+              Send Email
+            </v-btn> -->
+            <v-spacer></v-spacer>
+            <v-btn color="primary darken-1" flat="flat" @click="dialog = false">
+              Close
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Report -->
+      <v-dialog v-model="reports" max-width="760">
+        <v-toolbar light>
+          <v-toolbar-title class="light-blue--text">Payments list</v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-flex xs6 lg6>
+            <v-menu ref="menu1" :close-on-content-click="false" v-model="menu1" :nudge-right="40" lazy transition="scale-transition"
+              offset-y full-width max-width="290px" min-width="290px">
+              <v-text-field slot="activator" v-model="computedDateFormatted" label="Date" persistent-hint prepend-icon="event"
+                clearable @click:clear="dateFrom=null"></v-text-field>
+              <v-date-picker v-model="dateFrom" no-title @input="menu1 = false"></v-date-picker>
+            </v-menu>
+          </v-flex>
+          <v-spacer></v-spacer>
+          <v-btn icon large flat="flat" @click="exportCSS" :disabled="isexport">
+            <v-icon large>file_download</v-icon>
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn icon @click="reports = false">
+            <v-icon>close</v-icon>
+          </v-btn>
+        </v-toolbar>
+        <v-data-table :headers="headers" :items="payments" hide-actions class="elevation-1">
+          <template slot="items" slot-scope="props">
+            <td>{{ props.item.stid }}</td>
+            <td class="text-xs-right">{{ props.item.amount }}</td>
+            <td class="text-xs-left">{{ props.item.email }}</td>
+            <td class="text-xs-right">{{ props.item.service }}</td>
+            <td class="text-xs-center">{{ props.item.payment_type }}</td>
+            <td class="text-xs-right">{{ getlocaldate(props.item.data) }}</td>
+          </template>
+          <template slot="no-data">
+            <v-alert :value="true" color="error" icon="warning">
+              Sorry, nothing to display here :(
+            </v-alert>
+          </template>
+        </v-data-table>
+      </v-dialog>
+
+    </v-app>
+  </div>
+
+  <script>
+    const adapter = new LocalStorage('db');
+    const db = low(adapter);
+
+    db.defaults({
+        payments: []
+      })
+      .write()
+
+    // import axios from 'axios'
+    let app = new Vue({
+      el: '#app',
+      props: {
+        source: String
+      },
+      data: {
+        drawer: true,
+        fixed: false,
+        dialog: false,
+        reports: false,
+        valid: true,
+        payment_type: 'CASH',
+        dateFrom: null,
+        menu1: false,
+        isexport: true,
+        stid: '',
+        stidRules: [
+          v => !!v || 'Student ID is required',
+          v => (v && v.length <= 10) || 'Student ID must be less than 10 characters'
+        ],
+        amount: null,
+        amountRules: [
+          v => !!v || 'Payment amount is required',
+          v => (v > 0) || 'Amount must be great then 0'
+        ],
+        email: '',
+        emailRules: [
+          v => !!v || 'E-mail is required',
+          v => /.+@.+/.test(v) || 'E-mail must be valid'
+        ],
+        service: '',
+        serviceRules: [
+          v => !!v || 'Service is required',
+        ],
+        items: [{
+            text: 'Resubmission'
+          },
+          {
+            text: 'Homestay'
+          },
+          {
+            text: 'Papercut'
+          },
+          {
+            text: 'Library Fine'
+          },
+          {
+            text: 'English Book (New)'
+          },
+          {
+            text: 'English Book (Used)'
+          },
+          {
+            text: 'Remedial'
+          },
+          {
+            text: 'Shortfall'
+          },
+          {
+            text: 'Tuition Fees'
+          },
+          {
+            text: 'Other'
+          },
+        ],
+        headers: [{
+            text: 'Student ID',
+            align: 'left',
+            sortable: true,
+            value: 'stid'
+          },
+          {
+            text: 'Amount',
+            value: 'amount'
+          },
+          {
+            text: 'Email',
+            value: 'email'
+          },
+          {
+            text: 'Service',
+            value: 'service'
+          },
+          {
+            text: 'Payment type',
+            value: 'payment_type'
+          },
+          {
+            text: 'Date',
+            value: 'data'
+          }
+        ]
+      },
+      computed: {
+        payments() {
+          var lsts = null;
+          if (this.dateFrom === null) {
+            lsts = db.get('payments')
+              .sortBy('data').reverse()
+              .value();
+          } else {
+            lsts = db.get('payments')
+              .sortBy('data').reverse()
+              .filter((student) => {
+                let cd = new Date(student.data).setHours(0, 0, 0, 0);
+                let dt = new Date(this.dateFrom).setHours(0, 0, 0, 0);
+                return cd === dt;
+              })
+              .value();
+          }
+          this.isexport=(lsts===null || lsts.length===0);
+          return lsts;
+        },
+        computedDateFormatted() {
+          return this.formatDate(this.dateFrom);
+        },
+      },
+      methods: {
+        getlocaldate(mili) {
+          let dt = new Date(mili);
+          return dt.toLocaleString();
+        },
+        submit() {
+          if (this.$refs.form.validate()) {
+            let student = {
+              stid: this.stid,
+              email: this.email,
+              amount: this.amount,
+              service: this.service,
+              payment_type: this.payment_type,
+              data: Date.now()
+            };
+            this.makePdf();
+            db.get('payments')
+              .push(student)
+              .write()
+            this.sendEmail();  
+            this.dialog = true;
+            this.clear();
+          }
+        },
+        formatDate(date) {
+          if (!date) return null
+
+          const [year, month, day] = date.split('-')
+          return `${month}/${day}/${year}`
+        },
+
+        report() {
+          this.reports = true;
+        },
+        clear() {
+          this.$refs.form.reset()
+          this.payment_type = 'CASH';
+        },
+        makePdf() {
+          var pdf = new jsPDF('p', 'pt', 'letter');
+          var logoData =
+            'data:image/png;base64,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';
+
+          pdf.setDrawColor(0);
+          pdf.setFillColor(255, 255, 255);
+          pdf.roundedRect(35, 35, 535, 340, 2, 2, 'FD');
+
+          pdf.setFontSize(28);
+          pdf.addImage(logoData, 'PNG', 200, 45, 160, 60);
+          pdf.text(120, 130, 'Payment confirmation receipt');
+
+          pdf.setLineWidth(1);
+          pdf.line(120, 140, 480, 140);
+
+          pdf.setFontSize(20);
+          pdf.text(170, 180, 'Student ID - ' + this.stid);
+
+          pdf.setFont('times');
+          pdf.setFontType('italic');
+          pdf.text(170, 230, 'Payment for - ' + this.service);
+
+          pdf.setFont('times');
+          pdf.setFontType('italic');
+          pdf.text(170, 280, 'Payment type - ' + this.payment_type);
+
+          var payText = 'Payment amount - $' + this.amount;
+          pdf.setDrawColor(0);
+          pdf.setFillColor(211, 211, 211);
+          pdf.roundedRect(140, 310, 250 + (payText.length / 2) * 6, 50, 2, 2, 'FD');
+
+          pdf.setFont('courier');
+          pdf.setFontType('normal');
+          pdf.setTextColor(255, 0, 0);
+          pdf.text(170, 340, payText);
+          // Use http://dataurl.net/#dataurlmaker
+          // this.sendEmail(pdf.output('datauri'));  
+
+          pdf.save(this.stid + '.pdf');
+        },
+        sendEmail() {
+
+          var to = this.email;
+          var subject = "Payment confirmation email for Student ID "+this.stid+'.';
+          var message = "Payment receipt.";
+          var attachment = 'c://Users//User//Downloads//'+this.stid+'.pdf';
+          console.log(attachment);
+
+          document.location = "mailto:"+to+"?subject="+subject+"&body="+message+"&attachment="+attachment;
+
+
+          // Email.send("info@edenz.ac.nz", 'pavelsobolev@outlook.com', "Payment confirmation letter",
+            // "Body of letter", "smtp.ihug.co.nz");
+          // Email.sendWithAttachment("info@edenz.ac.nz", this.email, "Payment confirmation letter", "Body of letter", "smtp.ihug.co.nz", "", "",'' ,  file,  function done(message) { alert("Message sent OK");});
+        },
+        exportCSS() {
+          var students = this.payments;
+          var replacer = (key, value) => value === null ? '' : value;
+          var tolocaldate = function (mili) {
+            let dt = new Date(mili);
+            return dt.toLocaleString();
+          }
+          var header = Object.keys(students[0]);
+          let csv = students.map(row => header.map(fieldName => JSON.stringify(fieldName === 'data' ? tolocaldate(
+            row[fieldName]) : row[fieldName], replacer)).join(','));
+          csv.unshift(header.join(','));
+          csv = csv.join('\r\n');
+          download(csv, "payments.csv", "text/csv");
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
